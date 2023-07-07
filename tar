@@ -1,0 +1,70 @@
+#! /bin/bash -x
+function valid_ip()
+{
+  local ip=$1
+  local stat=1
+
+  if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ |]]; then
+    OIFS=$IFS
+    IFS='.'
+    ip=($ip)
+    IFS=$OIFS
+    [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+      && ${ip[2]} -le 255 && ${ip[3]} -le 255 |]]
+    stat=$?
+  fi
+  return $stat
+}
+IP=`ip -br a show eth0 | awk '{ if ( index($3,"/") == 0 ) print $3 ; else print substr($3,0,index($3,"/")-1); }'`
+PET=$(whiptail --title "Введите IPv4 адрес eth0 сетевого интерфейса" --inputbox "IPv4 :" 10 100 $IP 3>&1 1>&2 2>&3)
+valid_ip $PET
+if [ $? != 0 ] ; then logger -p local0.notice -t ALDpro_client "Введён не верный IP адрес eth0" ; exit 1 ; fi
+HOST_FULL=`hostname`
+HOST_SHORT=`hostname | awk '{ if ( index($0,".") == 0 ) print $0 ; else print substr($0,0,index($0,".")-1); }'`
+if [ $HOST_FULL == $HOST_SHORT ]; then HOST_FULL=$HOST_SHORT.ald.minfin.ru ; fi
+whiptail --title " Подтвердите правильность короткого / полного имени хоста " --yes-button "Да" --no-button "Нет" --yesno " $HOST_SHORT / $HOST_FULL " 10 100
+if [ $? != 0 ] ; then logger -p local0.notice -t ALDpro_client "Короткое / полное имя хоста не корректно" ; exit 1 ; fi
+client=`echo $PET      $HOST_SHORT $HOST_FULL`
+# Помещение строк с идентификацией ALDpro сервера и клиента в файл /etc/hosts
+len=`grep 10.104.2.101 /etc/hosts | wc -l`
+if [ $len == 0 ] ; then NUM=`grep -n 127.0.1.1 /etc/hosts | cut -d: -f1`
+        var1=`echo "sed -i '"$NUM"a\\10.104.2.101      aldpro.ald.minfin.ru aldpro' /etc/hosts"`
+        eval $var1
+fi
+len=`grep $PET /etc/hosts | wc -l`
+if [ $len == 0 ] ; then NUM=`grep -n 127.0.1.1 /etc/hosts | cut -d: -f1`
+        NUM=$NUM"i\\"$client
+        var1=`echo "sed -i '"$NUM"' /etc/hosts"`
+        eval $var1
+fi
+# Строки с сетевой идентификацией ALDpro сервера и клиента помещены в /etc/hosts
+# Настройка DNS
+if [ ! -e /etc/dhcp/dhcp.conf.bak ] ; then cp /etc/dhcp/dhcp.conf /etc/dhcp/dhcp.conf.bak ; fi
+cp -f /home/admroot/sc2_sources_list/dhclient.conf /etc/dhcp/dhcp.conf
+nmcli conn modify "Проводное соединение 1" ipv4.dns 10.104.2.101 10.104.2.10
+nmcli conn modify "Проводное соединение 1" ipv4.dns-search ald.minfin.ru,main.minfin.ru
+nmcli connection up "Проводное соединение 1"
+# Настройка DNS выполнена
+# Настройка репозитория
+if [ ! -e /etc/apt/sources.list.bak_1 ] ; then cp -f /etc/apt/sources.list /etc/apt/sources.list.bak_1 ; fi
+if [ ! -e /etc/apt/sources.list.d/aldpro.list.bak_1 ] ; then cp -f /etc/apt/sources.list.d/aldpro.list /etc/apt/sources.list.d/aldpro.list.bak_1 ; fi
+cp -f /home/admroot/sc2_sources_list/sources.list /etc/apt/sources.list
+cp -f /home/admroot/sc2_sources_list/sources.list.d/aldpro.list /etc/apt/sources.list.d/aldpro.list
+apt update
+# Настройка репозиториев завершена
+# Установка cifs-utils, libpam-mount, клиента ALDpro, rdp,  настройка линков и UserGate
+apt-get -y install cifs-utils libpam-mount
+cp /home/admroot/sc2_sources_list/pam_mount.conf.xml /etc/security/pam_mount.conf.xml
+cp /home/admroot/sc2_sources_list/98-UGate-proxy /etc/X11/Xsession.d/98-UGate-proxy
+apt -y install xrdp xorgxrdp
+systemctl enable xrdp
+systemctl start xrdp
+cp /home/admroot/sc2_sources_list/aldpro /etc/apt/preferences.d/aldpro
+apt update && sudo apt dist-upgrade -y
+var2=`astra-modeswitch get`
+if [ $var2 != 2 ] ; then logger -p local0.notice -t ALDpro_client "Уровень защищённости Astra Linux не максимальный" ; exit 1 ; fi
+var2=`ping -c 3 download.astralinux.ru | grep "100% packet loss" | wc -l`
+if [ $var2 != 0 ] ; then logger -p local0.notice -t ALDpro_client "Ресурс download.astralinux.ru не доступен" ; exit 1 ; fi
+DEBIAN_FRONTEND=noninteractive apt-get install -q -y aldpro-client
+/opt/rbta/aldpro/client/bin/aldpro-client-installer -c ald.minfin.ru -u admin -p Trna692bar8f -d $HOST_SHORT -i -f
+reboot
