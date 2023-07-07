@@ -72,7 +72,6 @@ echo -e "Прокол репозитория: $repo_proto"
 ####################################################################
 if $set_repo ; then
     echo 'set_repo - true'
-#repo_name2=(sed 's/http:\/\//https:\/\//g')
 # sources.list
     sed -i 's/^deb/#deb/g' /etc/apt/sources.list
     sed -i 's/http:\/\//https:\/\//g' /etc/apt/sources.list
