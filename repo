@@ -62,21 +62,9 @@ OPTION=$(whiptail --title "Установка клиента ALDPro" --menu "\n�
 #     Вывод переменных                                             #
 #                                                                  #
 ####################################################################
-#suffix=".*";
-#string=${dc_name%$suffix}; #Remove suffix
-#echo $string; #Prints "hello_kitty"
-#$ [[ "$dc_name" =~ ^[A-Za-z0-9]*$ ]] ; echo $?
-#echo $dc_name | awk '/[[:alnum:]]/{print $0}'
-
 echo -e "\n"
-echo -e "\nИмя домена: $ald_name"
-echo -e "Имя контроллера домена: $dc_name"
-echo -e "Имя контроллера fqdn $dc_name.$ald_name"
 echo -e "Имя сервера репозитория: $repo_name"
-echo -e "Имя пользователя домена: $dc_user"
-#echo -e "Пароль пользователя домена: $dc_pass\n"
-
-
+echo -e "Прокол репозитория: $repo_proto"
 ####################################################################
 #                                                                  #
 #    Репозитории                                                   #
@@ -96,10 +84,8 @@ if $set_repo ; then
     sed -i "s/deb https:\/\/dl.astralinux.ru/deb $repo_proto:\/\/$repo_name/g" /etc/apt/sources.list
     sed -i "/$repo_proto:\/\/$repo_name\/astra\/frozen\/1.7_x86-64\/1.7.3\/repository-base/s/^#\+//" /etc/apt/sources.list # убираем комент в строке по найденому слову
     sed -i "/$repo_proto:\/\/$repo_name\/astra\/frozen\/1.7_x86-64\/1.7.3\/repository-extended/s/^#\+//" /etc/apt/sources.list # убираем комент в строке по найденому слову
-    #sed -i "s/deb https:\/\/dl.astralinux.ru/deb $repo_proto:\/\/$repo_name/g" /etc/apt/sources.list
     echo -e "\nРепозитории astra обновлены"
 # sources.list.d
-    #find /etc/apt/sources.list.d/ -type f -exec sed -i 's/^deb/#deb/g' {} +
     find /etc/apt/sources.list.d/ -type f -exec sed -i 's/^deb/#deb/g' {} \;
     find /etc/apt/sources.list.d/ -type f -exec sed -i 's/http:\/\//https:\/\//g' {} \;
     find /etc/apt/sources.list.d/ -type f -exec sed -i 's/ftp:\/\//https:\/\//g' {} \;
@@ -110,18 +96,7 @@ if $set_repo ; then
     find /etc/apt/sources.list.d/ -type f -exec sed -i "s/deb https:\/\/dl.astralinux.ru/deb $repo_proto:\/\/$repo_name/g" {} \;
     sed -i "/$repo_proto:\/\/$repo_name\/aldpro\/stable\/repository-main\/ 1.4.1/s/^#\+//" /etc/apt/sources.list.d/aldpro.list # убираем комент в строке по найденому слову
     sed -i "/$repo_proto:\/\/$repo_name\/aldpro\/stable\/repository-extended\/ generic/s/^#\+//" /etc/apt/sources.list.d/aldpro.list # убираем комент в строке по найденому слову
-    #find /etc/apt/sources.list.d/ -type f -exec sed -i "s/deb https:\/\/dl.astralinux.ru/deb $repo_proto:\/\/$repo_name/g" {} \;
     echo -e "\nРепозитории ald обновлены"
-    #sort -u test.txt | tee test.txt >/dev/null
-    #sort -u test.txt | tee test.txt
-    #grep -rl 'frozen' ./test/test/sources.list | xargs sed -i '/repository-base/s/^#\+//'
-    #find ./test/ -type f -exec grep -rl 'frozen' ./test/test/sources.list | xargs sed -i '/repository-base/s/^#\+//'
-# preferences.d
-#cat > /etc/apt/preferences.d/aldpro <<EOF
-#Package: *
-#Pin: release n=generic
-#Pin-Priority: 900
-#EOF
 echo -e "\nРепозитории обновлены"
 else
     echo 'set_repo - false'
