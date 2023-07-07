@@ -2,7 +2,7 @@
 # Очищаем экран
 clear
 # Подгружаем переменнные
-#source <(curl -s http://repo.ald.minfin.ru/repo/sos/foo)
+#source <(curl -s https://raw.githubusercontent.com/mehaylen/aldpro/main/vars)
 # или указываем вручную
 #------------------------------------------#
 dc_name="dc01"
