@@ -23,7 +23,7 @@ dc_user="admin"
 #dc_pass="Donald"
 #set_repo="true"
 ald_pkg="1.4.1-5"
-pakets="fly-notifications remmina freerdp2-x11"
+pakets="fly-notifications remmina freerdp2-x11 ssh"
 #------------------------------------------#
 # Выполняем проверку прав суперпользователя
 if [ "$USER" != "root" ]; then
